@@ -20,7 +20,6 @@ function Rds(options) {
     var name = options.name || 'mydb';
     var allocatedStorage = options.allocatedStorage || 5;
     var multiAz = typeof options.multiAz === 'boolean' ? options.multiAz : true;
-    var availabilityZone = options.availabilityZone = 'None';
     var instanceType = options.instanceType || 'db.t1.micro';
     var username = options.username || 'root';
     var password = options.password;
@@ -28,6 +27,7 @@ function Rds(options) {
     var preferredBackupWindow = options.preferredBackupWindow;
     var preferredMaintenanceWindow = options.preferredMaintenanceWindow;
     var deletionPolicy = options.deletionPolicy || 'Delete';
+    var publiclyAccessible = options.publiclyAccessible;
 
     if (name.toLowerCase() === 'db' || name.toLowerCase() === 'database') {
         throw new Error(util.format('"%s" name is reserved', name));
@@ -58,6 +58,7 @@ function Rds(options) {
         ToPort: 5432,
         CidrIp: allowedCidr
     }));
+    
 
     var subnetGroup = this._addResource(novaform.rds.DBSubnetGroup(mkname('PrivateSubnet'), {
         DBSubnetGroupDescription: name + ' db private subnets',
@@ -80,7 +81,7 @@ function Rds(options) {
         BackupRetentionPeriod: backupRetentionPeriod,
         PreferredBackupWindow: preferredBackupWindow,
         PreferredMaintenanceWindow: preferredMaintenanceWindow,
-        PubliclyAccessible: false,
+        PubliclyAccessible: publiclyAccessible,
         VPCSecurityGroups: [securityGroup],
         MultiAZ: multiAz,
         Tags: {
