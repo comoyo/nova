@@ -28,6 +28,7 @@ function Rds(options) {
     var preferredMaintenanceWindow = options.preferredMaintenanceWindow;
     var deletionPolicy = options.deletionPolicy || 'Delete';
     var publiclyAccessible = options.publiclyAccessible;
+    var parameterGroup = options.parameterGroup;
 
     if (name.toLowerCase() === 'db' || name.toLowerCase() === 'database') {
         throw new Error(util.format('"%s" name is reserved', name));
@@ -39,6 +40,10 @@ function Rds(options) {
 
     if (typeof password === 'string' && password.length < 8) {
         throw new Error('RDS password has to be at least 8 characters');
+    }
+
+    if (parameterGroup && !(parameterGroup instanceof novaform.rds.DBParameterGroup || parameterGroup instanceof novaform.ref)) {
+        throw new Error('parameterGroup must novaform.rds.DBParameterGroup or novaform.ref');
     }
 
     function mkname(str) {
@@ -58,7 +63,6 @@ function Rds(options) {
         ToPort: 5432,
         CidrIp: allowedCidr
     }));
-    
 
     var subnetGroup = this._addResource(novaform.rds.DBSubnetGroup(mkname('PrivateSubnet'), {
         DBSubnetGroupDescription: name + ' db private subnets',
@@ -69,7 +73,7 @@ function Rds(options) {
         }
     }));
 
-    var dbinstance = this._addResource(novaform.rds.DBInstance(mkname('Instance'), {
+    var dbInstanceProps = {
         AllocatedStorage: allocatedStorage,
         DBInstanceClass: instanceType,
         DBName: name,
@@ -79,16 +83,28 @@ function Rds(options) {
         MasterUsername: username,
         MasterUserPassword: password,
         BackupRetentionPeriod: backupRetentionPeriod,
-        PreferredBackupWindow: preferredBackupWindow,
-        PreferredMaintenanceWindow: preferredMaintenanceWindow,
-        PubliclyAccessible: publiclyAccessible,
         VPCSecurityGroups: [securityGroup],
         MultiAZ: multiAz,
         Tags: {
             Application: novaform.refs.StackId,
             Name: novaform.join('-', [novaform.refs.StackName, mkname('Instance')])
         }
-    }, {
+    };
+
+    if (preferredBackupWindow) {
+        dbInstanceProps.PreferredBackupWindow = preferredBackupWindow;
+    }
+
+    if (preferredMaintenanceWindow) {
+        dbInstanceProps.PreferredMaintenanceWindow = preferredMaintenanceWindow;
+    }
+
+    if (publiclyAccessible) {
+        dbInstanceProps.PubliclyAccessible = publiclyAccessible;
+    }
+
+    var dbinstance = this._addResource(novaform.rds.DBInstance(mkname('Instance'),
+        dbInstanceProps, {
         DeletionPolicy: deletionPolicy,
     }));
 

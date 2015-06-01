@@ -9,7 +9,7 @@ var nova = require('../lib')
     , util = require('util')
     , q = require('q')
     , config = require('../lib/configuration')
-    , yaml = require('js-yaml');;
+    , yaml = require('js-yaml');
 
 function parseArguments(commands) {
     var args = process.argv.slice(2);
