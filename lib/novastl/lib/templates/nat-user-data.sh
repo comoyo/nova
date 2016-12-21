@@ -115,6 +115,22 @@ else
   done
 fi
 
+if [ -n "{{ ElasticIps }}" ]; then
+    eips="`aws --output json ec2 describe-addresses --filters Name=public-ip,Values={{ ElasticIps }}`"
+    log "Retrieved the following eip info: ${eips}"
+    available_eips=`echo "$eips" | jq '.Addresses | map(select(has("AssociationId") | not))'`
+    allocation_id=`echo "$available_eips" | jq '.[0].AllocationId' | sed 's/"//g'`
+
+    if [ "$allocation_id" = "null" ]; then
+        error $LINENO "Could not find any available eips!"
+    fi
+
+    log "Found available eip: ${allocation_id}"
+
+    association_id=`aws ec2 associate-address --instance-id ${instance_id} --allocation-id ${allocation_id}`
+    log "Associating eip allocation ${allocation_id} with myself: ${association_id}"
+fi
+
 # Turn off source / destination check
 aws ec2 modify-instance-attribute --instance-id $instance_id --source-dest-check "{\"Value\": false}" &&
   log "Source Destination check disabled for $instance_id."
